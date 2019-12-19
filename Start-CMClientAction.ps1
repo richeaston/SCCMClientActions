@@ -1,92 +1,4 @@
-﻿##########################################################
-#Script Title: Start SCCM Client Action PowerShell Tool 
-#Script File Name: Start-CMClientAction.ps1 
-#Author: Ron Ratzlaff  
-#Date Created: 4/19/2016 
-#Updated: 5/23/2017
-#Update Notes: Please refer to the TechNet Gallery at: https://gallery.technet.microsoft.com/Start-SCCM-Client-Actions-d3d84c3c
-##########################################################
-
-
-#Requires -Version 3.0
-
-Function Start-CMClientAction
-{
-    <#  
-      .SYNOPSIS  
-        
-          The "Start-CMClientAction" function allows 49 different SCCM client actions to be initiated on one, or more computers.  
-           
-      .DESCRIPTION 
-
-          The "Start-CMClientAction" PowerShell function allows for the initiaion of 49 SCCM client actions that can be ran on the local computer, or remote computers. Only one client action can be ran at a time, so using an array to include several client actions is not allowed. The Configuration Manager applet in Control Panel on the Actions tab lists 10 actions and these are identified in the Notes section with a "ConfigMgr Control Panel Applet" in parenthesis. SCCM Administrators typically find themselves running the following 3 actions during their monthly software update deployments (patching): Machine Policy Retrieval & Evaluation Cycle, Software Updates Scan Cycle, and Software Updates Deployment Evaluation Cycle. Because these 3 actions are so common, I decided to offer a way to bundle them with a 5 minute wait time (300 seconds) between each action. The parameter to use to run these 3 bundled actions is the '-SCCMActionsBundle' parameter. The 'SCCMClientAction' and the 'SCCMActionsBundle' parameters are members of different parameter sets, so they cannot be used together. 
-      
-      .PARAMETER ComputerName
-
-          Enter the name of one or more computers that you wish to initiate an SCCM client action on.
-
-      .PARAMETER SCCMClientAction
-
-          Enter a numerical value from 1-49 that represents each SCCM client action listed in the Notes section under ther "SCCM Client Action Trigger Codes" heading.
-
-      .PARAMETER SCCMActionsBundle
-
-          A switch parameter that does not accept any values, but rather tells the function to run the following 3 actions listed in the Notes section under ther "SCCM Client Action Trigger Codes" heading:
-
-          * Option 7 - Request Machine Assignments - (ConfigMgr Control Panel Applet - Machine Policy Retrieval & Evaluation Cycle)
-          * Option 38 - Scan by Update Source - (ConfigMgr Control Panel Applet - Software Updates Scan Cycle)
-          * Option 33 - Software Updates Assignments Evaluation Cycle - (ConfigMgr Control Panel Applet - Software Updates Deployment Evaluation Cycle) 
-          
-      .EXAMPLE
-
-          Initiate an SCCM Client Action on the Local Computer 
-
-          Start-CMClientAction -SCCMClientAction 1
-
-      .EXAMPLE
-
-          Initiate an SCCM Client Action on a Remote Computer
-
-          Start-CMClientAction -ComputerName 'RemoteComputer1' -SCCMClientAction 1
-
-      .EXAMPLE
-          
-          Initiate an SCCM Client Action on Multiple Remote Computers
-
-          Start-CMClientAction -ComputerName 'RemoteComputer1', 'RemoteComputer2', 'RemoteComputer3' -SCCMClientAction 1
-
-      .EXAMPLE
-          
-          Initiate an SCCM Client Action on Multiple Remote Computers Using a List of Computers in a Text File
-
-          Start-CMClientAction -ComputerName (Get-Content -Path "$env:userprofile\desktop\RemoteComputerList.txt") -SCCMClientAction 1
-
-       .EXAMPLE
-
-          Initiate an SCCM Client Action Bundle on the Local Computer that Runs Options 7, 38, and 33 (Machine Policy Retrievale & Evaluation Cycle, Software Updates Scan Cycle, and Software Updates Deployment Evaluation Cycle)
-
-          Start-CMClientAction -SCCMActionsBundle
-
-       .EXAMPLE
-
-          Initiate an SCCM Client Action Bundle on a Remote Computer that Runs Options 7, 38, and 33 (Machine Policy Retrievale & Evaluation Cycle, Software Updates Scan Cycle, and Software Updates Deployment Evaluation Cycle)
-
-          Start-CMClientAction -ComputerName 'RemoteComputer1' -SCCMActionsBundle
-
-       .EXAMPLE
-
-          Initiate an SCCM Client Action Bundle on Multiple Remote Computers that Runs Options 7, 38, and 33 (Machine Policy Retrievale & Evaluation Cycle, Software Updates Scan Cycle, and Software Updates Deployment Evaluation Cycle)
-
-          Start-CMClientAction -ComputerName 'RemoteComputer1', 'RemoteComputer2', 'RemoteComputer3' -SCCMActionsBundle
-
-       .EXAMPLE
-
-          Initiate an SCCM Client Action Bundle on Multiple Remote Computers Using a List of Computers in a Text File that Runs Options 7, 38, and 33 (Machine Policy Retrievale & Evaluation Cycle, Software Updates Scan Cycle, and Software Updates Deployment Evaluation Cycle)
-
-          Start-CMClientAction -ComputerName (Get-Content -Path "$env:userprofile\desktop\RemoteComputerList.txt") -SCCMActionsBundle
-
-        .NOTES
-
+    <#
           SCCM Client Action Trigger Codes
           --------------------------------
 
@@ -140,304 +52,87 @@ Function Start-CMClientAction
           48 - {00000000-0000-0000-0000-000000000222} Endpoint AM Policy Reevaluate 
           49 - {00000000-0000-0000-0000-000000000223} External Event Detection
     #>
-    
-    [cmdletbinding()]
-    
-    Param 
-    (
-        [Parameter(ValueFromPipeline=$True,
-            ValueFromPipelineByPropertyName=$True,
-            HelpMessage='Enter the name of either one or more computers')]
-            
-            [Alias('CN')]   
-            $ComputerName = $env:COMPUTERNAME, 
-            
-        [Parameter(ParameterSetName = 'Set 1',
-            HelpMessage='Enter the SCCM client action numerical value')]
-            [ValidateNotNullOrEmpty()]
-            [ValidateRange(1,49)]
-            [Alias('SCA')]   
-            [Int]$SCCMClientAction,
-
-        [Parameter(ParameterSetName = 'Set 2',
-            HelpMessage='Use this switch parameter to run the following 3 SCCM client actions: Machine Policy Retrieval & Evaluation Cycle, Software Updates Scan Cycle, and Software Updates Deployment Evaluation Cycle')]
-            [Alias('SAB')]   
-            [Switch]$SCCMActionsBundle
-    )
-    
-    Begin 
-    {
-        $NewLine = "`r`n"
-
-        If ($ComputerName -eq $env:COMPUTERNAME)
-        {   
-            $ComputerVar = $ComputerName.ToUpper()
-        }
-
-        Else
-        {
-            $NewLine
-            Write-Output -Verbose "======================================================="
-            $NewLine                                                                     
-            Write-Output -Verbose "            Check Computer(s) Online Status            "
-            $NewLine                                 
-            Write-Output -Verbose "======================================================="
-            $NewLine
-
-            $ComputerOnlineStatus = Foreach ($Computer in $ComputerName) 
-            {
-                    $Online = @(ForEach-Object -Process { If (Test-Connection -ComputerName $Computer -Count '1' -Quiet) { $Computer } })
-
-                    $Offline = @(ForEach-Object -Process { If (!(Test-Connection -ComputerName $Computer -Count '1' -Quiet)) { $Computer } })
-
-                    [pscustomobject] @{
-                        'Online' = $Online;
-                        'Offline' = $Offline
-                    }
-            }
-
-                $ComputerVar = ($ComputerOnlineStatus.Online).ToUpper()
-
-                $NewLine 
-                    
-                Write-Output -Verbose "---------- Computer(s) Online ----------"
-                     
-                $NewLine
-
-                If ($ComputerOnlineStatus.Online)
-                {
-                    ($ComputerOnlineStatus.Online).ToUpper()
-
-                    $NewLine
-                }
-
-                Else
-                {
-                    Write-Output -Verbose 'N/A'
-
-                    $NewLine
-                }
-                    
-                Write-Output -Verbose "---------- Computer(s) Offline ----------"
-                     
-                $NewLine
-
-                If ($ComputerOnlineStatus.Offline)
-                {
-                    ($ComputerOnlineStatus.Offline).ToUpper()
-
-                    $NewLine
-                }  
+    Function Run-SCCMClientAction {
+        [CmdletBinding()]
                 
-                Else
-                {
-                    Write-Output -Verbose 'N/A'
+        # Parameters used in this function
+        param
+        ( 
+            [Parameter(Position=0, Mandatory = $True, HelpMessage="Provide server names", ValueFromPipeline = $true)] 
+            [string[]]$Computername,
+ 
+           [ValidateSet('MachinePolicy', 
+                        'DiscoveryData', 
+                        'ComplianceEvaluation', 
+                        'AppDeployment',  
+                        'HardwareInventory', 
+                        'UpdateDeployment', 
+                        'UpdateScan', 
+                        'SoftwareInventory')] 
+            [string[]]$ClientAction
+   
+        ) 
+        $ActionResults = @()
+        Try { 
+                $ActionResults = Invoke-Command -ComputerName $Computername {param($ClientAction)
+ 
+                        Foreach ($Item in $ClientAction) {
+                            $Object = @{} | select "Action name",Status
+                            Try{
+                                $ScheduleIDMappings = @{ 
+                                    'MachinePolicy'        = '{00000000-0000-0000-0000-000000000021}'; 
+                                    'DiscoveryData'        = '{00000000-0000-0000-0000-000000000003}'; 
+                                    'ComplianceEvaluation' = '{00000000-0000-0000-0000-000000000071}'; 
+                                    'AppDeployment'        = '{00000000-0000-0000-0000-000000000121}'; 
+                                    'HardwareInventory'    = '{00000000-0000-0000-0000-000000000001}'; 
+                                    'UpdateDeployment'     = '{00000000-0000-0000-0000-000000000108}'; 
+                                    'UpdateScan'           = '{00000000-0000-0000-0000-000000000113}'; 
+                                    'SoftwareInventory'    = '{00000000-0000-0000-0000-000000000002}'; 
+                                }
+                                $ScheduleID = $ScheduleIDMappings[$item]
+                                Write-Verbose "Processing $Item - $ScheduleID"
+                                [void]([wmiclass] "root\ccm:SMS_Client").TriggerSchedule($ScheduleID);
+                                $Status = "Success"
+                                Write-Verbose "Operation status - $status"
+                            }
+                            Catch{
+                                $Status = "Failed"
+                                Write-Verbose "Operation status - $status"
+                            }
+                            $Object."Action name" = $item
+                            $Object.Status = $Status
+                            $Object
+                        }
+ 
+            } -ArgumentList $ClientAction -ErrorAction Stop | Select-Object @{n='ServerName';e={$_.pscomputername}},"Action name",Status
+        }  
+        Catch{
+            Write-Error $_.Exception.Message 
+        }   
+        Return $ActionResults           
+ } 
 
-                    $NewLine
-                }  
-        }
-    }
+<# 
+ #Single action on 1 computer
+Run-SCCMClientAction -Computername DC01 -ClientAction AppDeployment
+ 
+#Single action on multiple servers
+Run-SCCMClientAction -Computername (Get-Content .\input.txt) -ClientAction SoftwareInventory
+ 
+#Multiple actions  on multiple servers
+Run-SCCMClientAction -Computername (Get-Content .\input.txt) -ClientAction AppDeployment,ComplianceEvaluation,SoftwareInventory
+ 
+#Multiple actions with verbose mode  on multiple servers
+Run-SCCMClientAction -Computername (Get-Content .\input.txt) -ClientAction AppDeployment,ComplianceEvaluation,DiscoveryData,SoftwareInventory -Verbose
+#>
 
-    Process
-    {
-        Switch ($SCCMClientAction)
-        {
-            '1' { $ClientAction = '{00000000-0000-0000-0000-000000000001}' }
-            '2' { $ClientAction = '{00000000-0000-0000-0000-000000000002}' }
-            '3' { $ClientAction = '{00000000-0000-0000-0000-000000000003}' }
-            '4' { $ClientAction = '{00000000-0000-0000-0000-000000000010}' }
-            '5' { $ClientAction = '{00000000-0000-0000-0000-000000000011}' }
-            '6' { $ClientAction = '{00000000-0000-0000-0000-000000000012}' }
-            '7' { $ClientAction = '{00000000-0000-0000-0000-000000000021}' }
-            '8' { $ClientAction = '{00000000-0000-0000-0000-000000000022}' }
-            '9' { $ClientAction = '{00000000-0000-0000-0000-000000000023}' }
-            '10' { $ClientAction = '{00000000-0000-0000-0000-000000000024}' }
-            '11' { $ClientAction = '{00000000-0000-0000-0000-000000000025}' }
-            '12' { $ClientAction = '{00000000-0000-0000-0000-000000000026}' }
-            '13' { $ClientAction = '{00000000-0000-0000-0000-000000000027}' }
-            '14' { $ClientAction = '{00000000-0000-0000-0000-000000000031}' }
-            '15' { $ClientAction = '{00000000-0000-0000-0000-000000000032}' }
-            '16' { $ClientAction = '{00000000-0000-0000-0000-000000000037}' }
-            '17' { $ClientAction = '{00000000-0000-0000-0000-000000000040}' }
-            '18' { $ClientAction = '{00000000-0000-0000-0000-000000000041}' }
-            '19' { $ClientAction = '{00000000-0000-0000-0000-000000000042}' }
-            '20' { $ClientAction = '{00000000-0000-0000-0000-000000000043}' }
-            '21' { $ClientAction = '{00000000-0000-0000-0000-000000000051}' }
-            '22' { $ClientAction = '{00000000-0000-0000-0000-000000000061}' }
-            '23' { $ClientAction = '{00000000-0000-0000-0000-000000000062}' }
-            '24' { $ClientAction = '{00000000-0000-0000-0000-000000000063}' }
-            '25' { $ClientAction = '{00000000-0000-0000-0000-000000000071}' }
-            '26' { $ClientAction = '{00000000-0000-0000-0000-000000000101}' }
-            '27' { $ClientAction = '{00000000-0000-0000-0000-000000000102}' }
-            '28' { $ClientAction = '{00000000-0000-0000-0000-000000000103}' }
-            '29' { $ClientAction = '{00000000-0000-0000-0000-000000000104}' }
-            '30' { $ClientAction = '{00000000-0000-0000-0000-000000000105}' }
-            '31' { $ClientAction = '{00000000-0000-0000-0000-000000000106}' }
-            '32' { $ClientAction = '{00000000-0000-0000-0000-000000000107}' }
-            '33' { $ClientAction = '{00000000-0000-0000-0000-000000000108}' }
-            '34' { $ClientAction = '{00000000-0000-0000-0000-000000000109}' }
-            '35' { $ClientAction = '{00000000-0000-0000-0000-000000000110}' }
-            '36' { $ClientAction = '{00000000-0000-0000-0000-000000000111}' }
-            '37' { $ClientAction = '{00000000-0000-0000-0000-000000000112}' }
-            '38' { $ClientAction = '{00000000-0000-0000-0000-000000000113}' }
-            '39' { $ClientAction = '{00000000-0000-0000-0000-000000000114}' }
-            '40' { $ClientAction = '{00000000-0000-0000-0000-000000000115}' }
-            '41' { $ClientAction = '{00000000-0000-0000-0000-000000000116}' }
-            '42' { $ClientAction = '{00000000-0000-0000-0000-000000000120}' }
-            '43' { $ClientAction = '{00000000-0000-0000-0000-000000000121}' }
-            '44' { $ClientAction = '{00000000-0000-0000-0000-000000000122}' }
-            '45' { $ClientAction = '{00000000-0000-0000-0000-000000000123}' }
-            '46' { $ClientAction = '{00000000-0000-0000-0000-000000000131}' }
-            '47' { $ClientAction = '{00000000-0000-0000-0000-000000000221}' }
-            '48' { $ClientAction = '{00000000-0000-0000-0000-000000000222}' }
-            '49' { $ClientAction = '{00000000-0000-0000-0000-000000000223}' } 
-        }
-        
-        If (!($PSBoundParameters.Keys.Contains('SCCMActionsBundle')))
-        {
-            Foreach ($Computer in $ComputerVar)
-            {
-               Try
-               {         
-                    $NewLine 
-                
-                    Invoke-WmiMethod -ComputerName $Computer -Namespace root\ccm -Class sms_client -Name TriggerSchedule -ArgumentList $ClientAction -ErrorAction Stop
+$pc = read-host "enter pc / server name"
 
-                    $NewLine
+Run-SCCMClientAction -Computername $pc -ClientAction UpdateScan -verbose
+Run-SCCMClientAction -Computername $pc -ClientAction UpdateDeployment -verbose
+Run-SCCMClientAction -Computername $pc -ClientAction MachinePolicy -verbose
+Run-SCCMClientAction -Computername $pc -ClientAction SoftwareInventory -verbose
 
-                    Write-Output -Verbose "The specified SCCM client action was successfully initiated on computer $Computer"
+Write-Host "`n Client Actions Ran " -BackgroundColor DarkGreen -ForegroundColor Yellow
 
-                    $NewLine
-                }
-
-                Catch
-                {
-                    $NewLine
-                        
-                    Write-Warning -Message "The following error occurred when trying to run the specified SCCM client action on computer ${Computer}: $_"
-
-                    $Newline
-                }   
-            }
-        }
-
-        Else
-        {
-            Foreach ($Computer in $ComputerVar)
-            {
-                Write-Output -Verbose '---------- Running SCCM Client Actions Bundle ----------'
-            
-                Try
-                {         
-                    $NewLine
-                
-                    Write-Output -Verbose '==========================================='
-                    Write-Output -Verbose 'Machine Policy Retrieval & Evaluation Cycle'
-                    Write-Output -Verbose '==========================================='
-                
-                    $NewLine 
-                
-                    Invoke-WmiMethod -ComputerName $Computer -Namespace root\ccm -Class sms_client -Name TriggerSchedule -ArgumentList '{00000000-0000-0000-0000-000000000021}' -ErrorAction Stop
-
-                    $NewLine
-
-                    Write-Output -Verbose 'Machine Policy Retrieval and Evaluation Cycle action successfully initiated'
-
-                    $NewLine
-
-                    Write-Output -Verbose 'Waiting 5 minutes before running next SCCM client action...'
-
-                    Start-Sleep -Seconds 300
-
-                    $NewLine
-                }
-
-                Catch
-                {
-                    $NewLine
-                        
-                    Write-Warning -Message "The following error occurred when trying to run the specified SCCM client action on computer ${Computer}: $_"
-
-                    $Newline
-
-                    Break
-                } 
-
-                Try
-                {         
-                    $NewLine
-                
-                    Write-Output -Verbose '==========================='
-                    Write-Output -Verbose 'Software Updates Scan Cycle'
-                    Write-Output -Verbose '==========================='
-
-                    $NewLine
-                
-                    Invoke-WmiMethod -ComputerName $Computer -Namespace root\ccm -Class sms_client -Name TriggerSchedule -ArgumentList '{00000000-0000-0000-0000-000000000113}' -ErrorAction Stop
-
-                    $NewLine
-
-                    Write-Output -Verbose 'Software Updates Scan Cycle action successfully initiated'
-
-                    $NewLine
-
-                    Write-Output -Verbose 'Waiting 5 minutes before running next SCCM client action...'
-
-                    Start-Sleep -Seconds 300
-
-                    $NewLine
-                }
-
-                Catch
-                {
-                    $NewLine
-                        
-                    Write-Warning -Message "The following error occurred when trying to run the specified SCCM client action on computer ${Computer}: $_"
-
-                    $Newline
-
-                    Break
-                } 
-
-                Try
-                {         
-                    $NewLine
-                
-                    Write-Output -Verbose '============================================'
-                    Write-Output -Verbose 'Software Updates Deployment Evaluation Cycle'
-                    Write-Output -Verbose '============================================'
-                
-                    $NewLine 
-                
-                    Invoke-WmiMethod -ComputerName $Computer -Namespace root\ccm -Class sms_client -Name TriggerSchedule -ArgumentList '{00000000-0000-0000-0000-000000000108}' -ErrorAction Stop
-
-                    $NewLine
-
-                    Write-Output -Verbose 'Software Updates Deployment Evaluation Cycle action successfully initiated'
-
-                    $NewLine
-
-                    Write-Output -Verbose 'Waiting 5 minutes before running next SCCM client action...'
-
-                    Start-Sleep -Seconds 300
-
-                    $NewLine
-                }
-
-                Catch
-                {
-                    $NewLine
-                        
-                    Write-Warning -Message "The following error occurred when trying to run the specified SCCM client action on computer ${Computer}: $_"
-
-                    $Newline
-
-                    Break
-                } 
-            }
-        }
-    }
-
-    End {}  
-}
 
