@@ -77,7 +77,7 @@
                 $ActionResults = Invoke-Command -ComputerName $Computername {param($ClientAction)
  
                         Foreach ($Item in $ClientAction) {
-                            $Object = @{} | select "Action name",Status
+                            $Object = @{} | Select-Object "Action name",Status
                             Try{
                                 $ScheduleIDMappings = @{ 
                                     'MachinePolicy'        = '{00000000-0000-0000-0000-000000000021}'; 
